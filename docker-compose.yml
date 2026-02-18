@@ -9,7 +9,7 @@ services:
       - FLASK_APP=app.py
 
   frontend:
-    image: hazelboyaalici/lms-frontend:2.0.0  # Replace with your Docker Hub username
+    image: hazelboyaalici/lms-frontend:2.0.1  # Replace with your Docker Hub username
     pull_policy: always
     ports:
       - "80:80"
