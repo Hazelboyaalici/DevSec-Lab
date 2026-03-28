@@ -1,0 +1,91 @@
+---
+- name: Setup LMS Server
+  hosts: lms
+  become: yes
+  vars:
+    docker_compose_version: "2.20.3"
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install system utilities
+      apt:
+        name: "{{ packages }}"
+        state: present
+      vars:
+        packages:
+          - htop
+          - net-tools
+          - tmux
+          - curl
+          - git
+          - vim
+          - ca-certificates
+          - gnupg
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Docker packages
+      apt:
+        name: "{{ packages }}"
+        state: present
+      vars:
+        packages:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+
+    - name: Ensure Docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Download Docker Compose
+      get_url:
+        url: "https://github.com/docker/compose/releases/latest/download/docker-compose-{{ ansible_system }}-{{ ansible_architecture }}"
+        dest: "/usr/local/bin/docker-compose"
+        mode: '0755'
+
+    - name: Check Docker Compose installation
+      command: docker-compose --version
+      register: docker_compose_version_output
+      changed_when: false
+
+    - name: Create .tmux.conf
+      copy:
+        dest: /home/ubuntu/.tmux.conf
+        content: |
+          set -g mouse on
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+
+    - name: Create setup completion marker
+      copy:
+        dest: /home/ubuntu/setup_complete.txt
+        content: "Setup completed at {{ ansible_date_time.iso8601 }}"
+        owner: ubuntu
+        group: ubuntu
