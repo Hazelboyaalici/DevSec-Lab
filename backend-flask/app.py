@@ -8,9 +8,41 @@ import jwt
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from datetime import datetime
+import newrelic.agent
+
+
+def get_user_additional(user_id):
+    query= "SELECT * FROM users WHERE id = "+ user_id
+    print(query)
+    return query
+get_user_additional("1")
+
+
+try:
+    newrelic.agent.initialize(
+        config_file='newrelic.ini',
+        enviroment=None,
+        log_file='stderr',
+        log_level='INFO'
+    )
+
+except ImportError:
+    print("New Relic import failed - monitoring diabled")
+
 
 app = Flask(__name__)
 CORS(app)
+
+
+# intentional XSS vulnerability for ZAP testing
+from flask import request
+
+@app.route("/greet")
+def greet():
+    name = request.args.get("name", "")
+    # ! DİKKAT: user input direk HTML olarak render ediliyor → XSS
+    return f"<h1>Hello {name}</h1>"
+
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///learning.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -570,3 +602,8 @@ if __name__ == '__main__':
             print("Sample courses created and assigned to John Smith")
 
     app.run(debug=True, host='0.0.0.0', port=4000)
+    try:
+        wsgi_application = newrelic.agent.WSGIApplicationWrapper(app)
+        app.run(host='0.0.0.0', port=4000)
+    except ImportError:
+        app.run(host='0.0.0.0', port=4000)
