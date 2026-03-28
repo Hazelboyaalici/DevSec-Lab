@@ -88,3 +88,6 @@ jobs:
             docker-compose up -d --force-recreate
             echo "Deployment complete!"
           '
+      - name: Copy docker-compose.elk.yml file 
+        run: | 
+          scp docker-compose.elk.yml ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:~/docker-compose.elk.yml
